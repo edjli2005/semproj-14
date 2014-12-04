@@ -9,13 +9,13 @@ STLHashTableIndex::STLHashTableIndex(std::string filename):Index(filename) {
 }
 
 void STLHashTableIndex::add(const unsigned int id, const std::string word, const unsigned int freq) {
-    entry::doc d;
+    /*entry::doc d;
     d.id = id;
-    d.termFreq = freq;
+    d.termFreq = freq;*/
     tableLock.lock();
-    entry& e = table[word];
-    if(e.keyword != word) e.keyword = word;
-    e.documents.push_back(d);
+    entry& e = table[word]; // create entry if not exists
+    if(e.keyword != word) e.keyword = word; // in case of newly created entry
+    e.documents[id] = freq;
     tableLock.unlock();
 }
 
@@ -33,8 +33,8 @@ void STLHashTableIndex::save() {
         fout << i->first << ";";
         fout << i->second.idf << ";";
         for (auto j = i->second.documents.begin(); j != i->second.documents.end(); j++) {
-            fout << j->id << ",";
-            fout << j->termFreq << ";";
+            fout << j->first << ",";
+            fout << j->second<< ";";
         }
         fout << "\n";
     }
@@ -46,8 +46,8 @@ void STLHashTableIndex::load() {
     std::ifstream fin;
     fin.open(filename);
     if (!fin.is_open()) {
-        std::cout << "Error opening " << filename << std::endl;
-        exit(1);
+        std::cout << filename << " does not exist." << std::endl;
+        return;
     }
 
     // read in index from file
@@ -64,10 +64,7 @@ void STLHashTableIndex::load() {
         while(val) {
             std::getline(fin, id_in, ',');
             std::getline(fin, tf_in, ';');
-            entry::doc d;
-            d.id = std::atoi(id_in.c_str());
-            d.termFreq = std::atoi(tf_in.c_str());
-            e.documents.push_back(d);
+            e.documents[std::atoi(id_in.c_str())] = std::atoi(tf_in.c_str());
             //std::cout << id_in << "," << tf_in << ";";
             if (fin.peek() == '\n' || !fin.good()) {
                 fin.get();
@@ -82,7 +79,7 @@ void STLHashTableIndex::load() {
 }
 
 void STLHashTableIndex::clear() {
-
+    table.clear();
 }
 
 void STLHashTableIndex::find(std::string searchTerm) {
@@ -91,8 +88,8 @@ void STLHashTableIndex::find(std::string searchTerm) {
         std::cout << "SEARCH TERM: " << srch->first << std::endl;
         std::cout << "*****RESULTS*****" << std::endl;
         for (auto j = srch->second.documents.begin(); j != srch->second.documents.end(); j++) {
-            std::cout << "doc ID: " << j->id << std::endl;
-            const unsigned int temp_id = j->id;
+            std::cout << "doc ID: " << j->first << std::endl;
+            const unsigned int temp_id = j->first;
             std::string idfromtitle = IDtoTitle(temp_id);
             std::cout << "title: " << idfromtitle << "\n\n";
         }
@@ -105,7 +102,7 @@ std::map<unsigned int, unsigned int> STLHashTableIndex::findAll(std::string keyw
     try {
         entry& e = table.at(keyword);
         std::map<unsigned int, unsigned int> theMap;
-        for(auto it = e.documents.begin(); it != e.documents.end(); it++) theMap[it->id] = it->termFreq;
+        for(auto it = e.documents.begin(); it != e.documents.end(); it++) theMap[it->first] = it->second;
         return theMap;
     } catch(std::out_of_range) {
         std::cout << "Keyword doesn't exist" << std::endl;

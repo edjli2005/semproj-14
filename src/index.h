@@ -21,7 +21,8 @@ protected:
             double termFreq;
         };
         std::string keyword;
-        std::vector<doc> documents;
+        std::unordered_map<unsigned int, double> documents;
+        //std::vector<doc> documents;
         double idf = 0;
     };
 public:
